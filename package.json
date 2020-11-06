@@ -2,6 +2,7 @@
   "name": "run-the-world",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://shiminshen.github.io/run-the-world",
   "dependencies": {
     "@testing-library/jest-dom": "^5.11.5",
     "@testing-library/react": "^11.1.1",
@@ -17,7 +18,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "prepublish": "npm run build",
-    "publish": "gh-pages -d public"
+    "publish": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
