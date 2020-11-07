@@ -21,11 +21,11 @@ const StreamRooms = styled.div`
   display: flex;
 `
 
-const StreamRoom = ({ user }) => {
-  const { uid } = user
+const StreamRoom = ({ id, user }) => {
+  const uid = id || user.uid
   return (
     <div>
-      <p>uid: {uid}</p>
+      {user && <p>uid: {uid}</p>}
       <LocalStream id={uid} />
     </div>
   )
@@ -68,8 +68,15 @@ const ClientSettings = ({ setSettings }) => {
   )
 }
 
-const useAgroaClient = ({ settings, setClientStatus, setRemoteUsers }) => {
-  const join = async settings => {
+const useAgroaClient = ({
+  client,
+  localUser,
+  settings,
+  setLocalUser,
+  setClient,
+  setRemoteUsers
+}) => {
+  const join = async () => {
     const client = AgoraRTC.createClient({
       mode: 'rtc',
       codec: 'h264'
@@ -118,56 +125,58 @@ const useAgroaClient = ({ settings, setClientStatus, setRemoteUsers }) => {
       const audioTrack = await AgoraRTC.createMicrophoneAudioTrack()
       const videoTrack = await AgoraRTC.createCameraVideoTrack()
 
-      const localUser = { uid, audioTrack, videoTrack }
-      localUser.videoTrack.play('local-user')
+      videoTrack.play('local-user')
+      setLocalUser({ uid, audioTrack, videoTrack })
+
       await client.publish([audioTrack, videoTrack])
       toast.info('join channel success!')
-      const status = { client, user: localUser }
-      setClientStatus(status)
-      return status
+      setClient(client)
+      return client
     } catch (e) {
       /* handle error */
       toast.error(e.message)
       return {}
     }
   }
-  const leave = async (client, user) => {
-    user.audioTrack.close()
-    user.videoTrack.close()
-    setClientStatus({})
+
+  const leave = async () => {
+    localUser.audioTrack.close()
+    localUser.videoTrack.close()
+    setClient(null)
     setRemoteUsers([])
     await client.leave()
   }
 
-  const publish = async (client, tracks) => {
-    return client.publish(tracks)
+  const show = async () => {
+    return client.publish([localUser.videoTrack])
   }
 
-  const unpublish = async (client, user) => {
-    return client.unpublish([user.audioTrack, user.videoTrack])
+  const hide = async () => {
+    return client.unpublish([localUser.videoTrack])
   }
 
-  const mute = async (client, user) => {
-    return client.unpublish([user.audioTrack])
+  const mute = async () => {
+    return client.unpublish([localUser.audioTrack])
   }
 
-  const unmute = async (client, user) => {
-    return client.publish([user.audioTrack])
+  const unmute = async () => {
+    return client.publish([localUser.audioTrack])
   }
 
   return {
     join,
     leave,
-    publish,
-    unpublish,
+    show,
+    hide,
     mute,
     unmute
   }
 }
 
 const App = () => {
+  const [localUser, setLocalUser] = useState()
   const [remoteUsers, setRemoteUsers] = useState([])
-  const [clientStatus, setClientStatus] = useState({})
+  const [client, setClient] = useState()
   const [settings, setSettings] = useState({
     appID: 'b09b71cce3ea499a80e7e94c9abae12e',
     channel: 'runTheWorld',
@@ -175,32 +184,33 @@ const App = () => {
       '006ed1ec7534a41423faea1f5a3ccd04399IACT3bNUZDYGuocHIMczy6J7jZR8eqQbw8tbIwQGs2qA/DnmkEUAAAAAEABJgS3VcxeoXwEAAQByF6hf'
   })
 
-  const { client, user: localUser } = clientStatus
-  const { join, leave, publish, unpublish, mute, unmute } = useAgroaClient({
+  const { join, leave, show, hide, mute, unmute } = useAgroaClient({
+    client,
+    localUser,
     settings,
-    setClientStatus,
+    setLocalUser,
+    setClient,
     setRemoteUsers
   })
 
   return (
     <div className="App">
       <ToastContainer position="bottom-left" />
+      <h1>Run The World</h1>
       <ClientSettings setSettings={setSettings} />
       {!client ? (
-        <button onClick={() => join(settings)}>Join</button>
+        <button onClick={join}>Join</button>
       ) : (
         <>
-          <button onClick={() => leave(client, localUser)}>Leave</button>
-          <button onClick={() => unpublish(client, localUser)}>
-            Unpublish
-          </button>
-          <button onClick={() => publish(client, localUser)}>Publish</button>
-          <button onClick={() => mute(client, localUser)}>Mute</button>
-          <button onClick={() => unmute(client, localUser)}>Unmute</button>
+          <button onClick={leave}>Leave</button>
+          <button onClick={show}>Show</button>
+          <button onClick={hide}>Hide</button>
+          <button onClick={mute}>Mute</button>
+          <button onClick={unmute}>Unmute</button>
         </>
       )}
       <StreamRooms>
-        <LocalStream id="local-user" />
+        <StreamRoom id="local-user" user={localUser} />
         {remoteUsers?.map(user => (
           <StreamRoom key={user.uid} user={user} />
         ))}
