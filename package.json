@@ -21,8 +21,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
-    "lintfix": "prettier --write src/**/*.{js,css} && eslint --fix",
-    "lint": "prettier --write src/**/*.{js,css} && eslint",
+    "lint-staged": "./node_modules/.bin/lint-staged",
+    "lintfix": "prettier --write src/**/*.{js,css} && eslint --fix src/**/*.js",
+    "lint": "prettier --write src/**/*.{js,css} && eslint src/**/*.js",
     "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
@@ -47,10 +48,24 @@
     "babel-eslint": "^10.1.0",
     "eslint": "^7.13.0",
     "eslint-config-prettier": "^6.15.0",
+    "eslint-config-prettier-standard": "^3.0.1",
+    "eslint-config-standard": "^16.0.1",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^3.1.4",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-react": "^7.21.5",
+    "eslint-plugin-standard": "^4.0.2",
     "gh-pages": "^3.1.0",
-    "husky": "^5.0.0-beta.0",
+    "husky": "^4.3.0",
+    "lint-staged": "^10.5.1",
     "pinst": "^2.0.0",
-    "prettier": "^2.1.2"
+    "prettier": "^2.1.2",
+    "prettier-config-standard": "^1.0.1"
+  },
+  "lint-staged": {
+    "*.{js,css}": [
+      "npm run lintfix"
+    ]
   }
 }
