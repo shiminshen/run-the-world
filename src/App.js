@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import AgoraRTC from 'agora-rtc-sdk-ng'
 import styled from 'styled-components'
@@ -21,76 +21,7 @@ const StreamRooms = styled.div`
   display: flex;
 `
 
-// Options for joining a channel
-// const options = {
-//   appID: 'b09b71cce3ea499a80e7e94c9abae12e',
-//   channel: 'runTheWorld',
-//   uid: null,
-//   token:
-//     '006ed1ec7534a41423faea1f5a3ccd04399IABZqWtmG/8C0MsRljAYu57oVqrjsyK657NiC4UzlwzI+znmkEUAAAAAEABJgS3VXbqnXwEAAQBcuqdf'
-// }
-
-const join = async (settings, setRemoteUsers) => {
-  const client = AgoraRTC.createClient({
-    mode: 'rtc',
-    codec: 'h264'
-  })
-
-  // remote publish
-  client.on('user-published', async (user, mediaType) => {
-    console.log('user-published: ', user)
-    console.log(user)
-    // Initiate the subscription
-    await client.subscribe(user, mediaType)
-    setRemoteUsers(currUsers => {
-      // only add non exist users
-      if (!currUsers.find(I => I.uid === user.uid)) {
-        return [...currUsers, user]
-      } else {
-        return currUsers
-      }
-    })
-  })
-
-  // remote user unpublished
-  client.on('user-unpublished', async (user, mediaType) => {
-    console.log('user-unpublished: ', user)
-    // Initiate the subscription
-    console.log('unpublish!!!!!!!!!!!!!')
-    console.log(mediaType)
-    console.log('vidoe: ', user.hasVideo)
-    console.log('audio: ', user.hasAudio)
-    setRemoteUsers(currUsers => currUsers.filter(I => I.uid !== user.uid))
-  })
-
-  try {
-    const { appId, channel, token } = settings
-    const uid = await client.join(appId, channel, token)
-    const audioTrack = await AgoraRTC.createMicrophoneAudioTrack()
-    const videoTrack = await AgoraRTC.createCameraVideoTrack()
-
-    const user = { uid, audioTrack, videoTrack }
-    await client.publish([audioTrack, videoTrack])
-    toast.info('join channel success!')
-    return { client, user }
-  } catch (e) {
-    /* handle error */
-    toast.error(e.message)
-    return {}
-  }
-}
-
 const StreamRoom = ({ user }) => {
-  useEffect(() => {
-    console.log(user)
-    try {
-      user.audioTrack?.play()
-      user.videoTrack?.play(user.uid.toString())
-    } catch (e) {
-      /* handle error */
-      console.log(e)
-    }
-  }, [])
   const { uid } = user
   return (
     <div>
@@ -137,28 +68,79 @@ const ClientSettings = ({ setSettings }) => {
   )
 }
 
-const App = () => {
-  const [remoteUsers, setRemoteUsers] = useState([])
-  const [clientStatus, setClientStatus] = useState({})
-  const [settings, setSettings] = useState({
-    appID: 'b09b71cce3ea499a80e7e94c9abae12e',
-    channel: 'runTheWorld',
-    token:
-      '006ed1ec7534a41423faea1f5a3ccd04399IABZqWtmG/8C0MsRljAYu57oVqrjsyK657NiC4UzlwzI+znmkEUAAAAAEABJgS3VXbqnXwEAAQBcuqdf'
-  })
+const useAgroaClient = ({ settings, setClientStatus, setRemoteUsers }) => {
+  const join = async settings => {
+    const client = AgoraRTC.createClient({
+      mode: 'rtc',
+      codec: 'h264'
+    })
 
-  const { client, user: localUser } = clientStatus
+    // remote publish
+    client.on('user-joined', async user => {
+      // Initiate the subscription
+      // await client.subscribe(user, mediaType)
+      setRemoteUsers(currUsers => {
+        // only add non exist users
+        if (!currUsers.find(I => I.uid === user.uid)) {
+          return [...currUsers, user]
+        } else {
+          return currUsers
+        }
+      })
+    })
 
+    // remote publish
+    client.on('user-published', async (user, mediaType) => {
+      toast.info(`user-published: ${user.uid} ${mediaType}`)
+      // Initiate the subscription
+      await client.subscribe(user, mediaType)
+      // setRemoteUsers(currUsers => [...currUsers])
+      if (mediaType === 'video') {
+        user.videoTrack.play(user.uid.toString())
+      } else if (mediaType === 'audio') {
+        user.audioTrack.play()
+      }
+    })
+
+    // remote user unpublished
+    client.on('user-unpublished', async (user, mediaType) => {
+      toast.warning(`user-unpublished: ${user.uid} ${mediaType}`)
+    })
+
+    // remote user unpublished
+    client.on('user-left', async (user, mediaType) => {
+      setRemoteUsers(currUsers => currUsers.filter(I => I.uid !== user.uid))
+    })
+
+    try {
+      const { appId, channel, token } = settings
+      const uid = await client.join(appId, channel, token)
+      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack()
+      const videoTrack = await AgoraRTC.createCameraVideoTrack()
+
+      const localUser = { uid, audioTrack, videoTrack }
+      localUser.videoTrack.play('local-user')
+      await client.publish([audioTrack, videoTrack])
+      toast.info('join channel success!')
+      const status = { client, user: localUser }
+      setClientStatus(status)
+      return status
+    } catch (e) {
+      /* handle error */
+      toast.error(e.message)
+      return {}
+    }
+  }
   const leave = async (client, user) => {
     user.audioTrack.close()
     user.videoTrack.close()
-    setClientStatus(I => ({ ...I, user: null }))
+    setClientStatus({})
     setRemoteUsers([])
     await client.leave()
   }
 
-  const publish = async (client, user) => {
-    return client.publish([user.audioTrack, user.videoTrack])
+  const publish = async (client, tracks) => {
+    return client.publish(tracks)
   }
 
   const unpublish = async (client, user) => {
@@ -173,22 +155,42 @@ const App = () => {
     return client.publish([user.audioTrack])
   }
 
-  console.log(localUser)
+  return {
+    join,
+    leave,
+    publish,
+    unpublish,
+    mute,
+    unmute
+  }
+}
+
+const App = () => {
+  const [remoteUsers, setRemoteUsers] = useState([])
+  const [clientStatus, setClientStatus] = useState({})
+  const [settings, setSettings] = useState({
+    appID: 'b09b71cce3ea499a80e7e94c9abae12e',
+    channel: 'runTheWorld',
+    token:
+      '006ed1ec7534a41423faea1f5a3ccd04399IACT3bNUZDYGuocHIMczy6J7jZR8eqQbw8tbIwQGs2qA/DnmkEUAAAAAEABJgS3VcxeoXwEAAQByF6hf'
+  })
+
+  const { client, user: localUser } = clientStatus
+  const { join, leave, publish, unpublish, mute, unmute } = useAgroaClient({
+    settings,
+    setClientStatus,
+    setRemoteUsers
+  })
 
   return (
     <div className="App">
-      <ToastContainer />
+      <ToastContainer position="bottom-left" />
       <ClientSettings setSettings={setSettings} />
-      <button
-        onClick={async () => {
-          const status = await join(settings, setRemoteUsers)
-          setClientStatus(status)
-        }}>
-        Join
-      </button>
-      <button onClick={() => leave(client, localUser)}>Leave</button>
-      {client && (
+      {!client ? (
+        <button onClick={() => join(settings)}>Join</button>
+      ) : (
         <>
+          <button onClick={() => leave(client, localUser)}>Leave</button>
           <button onClick={() => unpublish(client, localUser)}>
             Unpublish
           </button>
@@ -198,7 +200,7 @@ const App = () => {
         </>
       )}
       <StreamRooms>
-        {localUser && <StreamRoom user={localUser} />}
+        <LocalStream id="local-user" />
         {remoteUsers?.map(user => (
           <StreamRoom key={user.uid} user={user} />
         ))}
