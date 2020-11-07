@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from 'react'
+import { ToastContainer, toast } from 'react-toastify'
 import AgoraRTC from 'agora-rtc-sdk-ng'
 import styled from 'styled-components'
 
+import 'react-toastify/dist/ReactToastify.css'
 import './App.css'
 
 const LocalStream = styled.div`
   width: 180px;
   height: 120px;
+`
+
+const SettingForm = styled.div`
+  label {
+    display: block;
+  }
+`
+
+const StreamRooms = styled.div`
+  display: flex;
 `
 
 // Options for joining a channel
@@ -51,14 +63,21 @@ const join = async (settings, setRemoteUsers) => {
     setRemoteUsers(currUsers => currUsers.filter(I => I.uid !== user.uid))
   })
 
-  const { appId, channel, token } = settings
-  const uid = await client.join(appId, channel, token)
-  const audioTrack = await AgoraRTC.createMicrophoneAudioTrack()
-  const videoTrack = await AgoraRTC.createCameraVideoTrack()
-  const user = { uid, audioTrack, videoTrack }
+  try {
+    const { appId, channel, token } = settings
+    const uid = await client.join(appId, channel, token)
+    const audioTrack = await AgoraRTC.createMicrophoneAudioTrack()
+    const videoTrack = await AgoraRTC.createCameraVideoTrack()
 
-  await client.publish([audioTrack, videoTrack])
-  return { client, user }
+    const user = { uid, audioTrack, videoTrack }
+    await client.publish([audioTrack, videoTrack])
+    toast.info('join channel success!')
+    return { client, user }
+  } catch (e) {
+    /* handle error */
+    toast.error(e.message)
+    return {}
+  }
 }
 
 const StreamRoom = ({ user }) => {
@@ -86,18 +105,47 @@ const ClientSettings = ({ setSettings }) => {
     setSettings(settings => ({ ...settings, [name]: event.target.value }))
 
   return (
-    <div>
-      <input type="text" name="appId" onChange={handleChange('appId')} />
-      <input type="text" name="channel" onChange={handleChange('channel')} />
-      <input type="text" name="token" onChange={handleChange('token')} />
-    </div>
+    <SettingForm>
+      <div>
+        <label htmlFor="appId">appId</label>
+        <input
+          id="appId"
+          type="text"
+          name="appId"
+          onChange={handleChange('appId')}
+        />
+      </div>
+      <div>
+        <label htmlFor="channel">Channel</label>
+        <input
+          id="channel"
+          type="text"
+          name="channel"
+          onChange={handleChange('channel')}
+        />
+      </div>
+      <div>
+        <label htmlFor="token">Token</label>
+        <input
+          id="token"
+          type="text"
+          name="token"
+          onChange={handleChange('token')}
+        />
+      </div>
+    </SettingForm>
   )
 }
 
 const App = () => {
   const [remoteUsers, setRemoteUsers] = useState([])
   const [clientStatus, setClientStatus] = useState({})
-  const [settings, setSettings] = useState({})
+  const [settings, setSettings] = useState({
+    appID: 'b09b71cce3ea499a80e7e94c9abae12e',
+    channel: 'runTheWorld',
+    token:
+      '006ed1ec7534a41423faea1f5a3ccd04399IABZqWtmG/8C0MsRljAYu57oVqrjsyK657NiC4UzlwzI+znmkEUAAAAAEABJgS3VXbqnXwEAAQBcuqdf'
+  })
 
   const { client, user: localUser } = clientStatus
 
@@ -125,12 +173,11 @@ const App = () => {
     return client.publish([user.audioTrack])
   }
 
-  console.log('aaaaaaaaaaaaa')
-  console.log(remoteUsers)
-  console.log(settings)
+  console.log(localUser)
 
   return (
     <div className="App">
+      <ToastContainer />
       <ClientSettings setSettings={setSettings} />
       <button
         onClick={async () => {
@@ -150,10 +197,12 @@ const App = () => {
           <button onClick={() => unmute(client, localUser)}>Unmute</button>
         </>
       )}
-      {localUser && <StreamRoom user={localUser} />}
-      {remoteUsers?.map(user => (
-        <StreamRoom key={user.uid} user={user} />
-      ))}
+      <StreamRooms>
+        {localUser && <StreamRoom user={localUser} />}
+        {remoteUsers?.map(user => (
+          <StreamRoom key={user.uid} user={user} />
+        ))}
+      </StreamRooms>
     </div>
   )
 }
