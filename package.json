@@ -13,15 +13,11 @@
     "web-vitals": "^0.2.4"
   },
   "scripts": {
-    "_postinstall": "husky install",
-    "prepublish": "pinst --disable",
-    "postpublish": "pinst --enable",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
-    "lint-staged": "./node_modules/.bin/lint-staged",
     "lintfix": "prettier --write src/**/*.{js,css} && eslint --fix src/**/*.js",
     "lint": "prettier --write src/**/*.{js,css} && eslint src/**/*.js",
     "deploy": "gh-pages -d build"
@@ -67,5 +63,10 @@
     "*.{js,css}": [
       "npm run lintfix"
     ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lintfix"
+    }
   }
 }
