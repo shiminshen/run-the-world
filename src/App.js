@@ -21,6 +21,16 @@ const StreamRooms = styled.div`
   display: flex;
 `
 
+const Buttons = styled.div`
+  margin-top: 6px;
+  display: flex;
+  justify-content: center;
+
+  button + button {
+    margin-left: 6px;
+  }
+`
+
 const StreamRoom = ({ id, user }) => {
   const uid = id || user.uid
   return (
@@ -143,15 +153,18 @@ const useAgroaClient = ({
     localUser.audioTrack.close()
     localUser.videoTrack.close()
     setClient(null)
+    setLocalUser(null)
     setRemoteUsers([])
     await client.leave()
   }
 
   const show = async () => {
+    await localUser.videoTrack.setEnabled(true)
     return client.publish([localUser.videoTrack])
   }
 
   const hide = async () => {
+    await localUser.videoTrack.setEnabled(false)
     return client.unpublish([localUser.videoTrack])
   }
 
@@ -198,17 +211,19 @@ const App = () => {
       <ToastContainer position="bottom-left" />
       <h1>Run The World</h1>
       <ClientSettings setSettings={setSettings} />
-      {!client ? (
-        <button onClick={join}>Join</button>
-      ) : (
-        <>
-          <button onClick={leave}>Leave</button>
-          <button onClick={show}>Show</button>
-          <button onClick={hide}>Hide</button>
-          <button onClick={mute}>Mute</button>
-          <button onClick={unmute}>Unmute</button>
-        </>
-      )}
+      <Buttons>
+        {!client ? (
+          <button onClick={join}>Join</button>
+        ) : (
+          <>
+            <button onClick={leave}>Leave</button>
+            <button onClick={show}>Show</button>
+            <button onClick={hide}>Hide</button>
+            <button onClick={mute}>Mute</button>
+            <button onClick={unmute}>Unmute</button>
+          </>
+        )}
+      </Buttons>
       <StreamRooms>
         <StreamRoom id="local-user" user={localUser} />
         {remoteUsers?.map(user => (
