@@ -4,7 +4,14 @@ import AgoraRTC from 'agora-rtc-sdk-ng'
 import styled from 'styled-components'
 
 import 'react-toastify/dist/ReactToastify.css'
-import './App.css'
+
+const Wrapper = styled.div`
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`
 
 const LocalStream = styled.div`
   width: 180px;
@@ -191,10 +198,9 @@ const App = () => {
   const [remoteUsers, setRemoteUsers] = useState([])
   const [client, setClient] = useState()
   const [settings, setSettings] = useState({
-    appID: 'b09b71cce3ea499a80e7e94c9abae12e',
-    channel: 'runTheWorld',
-    token:
-      '006ed1ec7534a41423faea1f5a3ccd04399IACT3bNUZDYGuocHIMczy6J7jZR8eqQbw8tbIwQGs2qA/DnmkEUAAAAAEABJgS3VcxeoXwEAAQByF6hf'
+    appID: '',
+    channel: '',
+    token: ''
   })
 
   const { join, leave, show, hide, mute, unmute } = useAgroaClient({
@@ -207,7 +213,7 @@ const App = () => {
   })
 
   return (
-    <div className="App">
+    <Wrapper>
       <ToastContainer position="bottom-left" />
       <h1>Run The World</h1>
       <ClientSettings setSettings={setSettings} />
@@ -230,7 +236,7 @@ const App = () => {
           <StreamRoom key={user.uid} user={user} />
         ))}
       </StreamRooms>
-    </div>
+    </Wrapper>
   )
 }
 
