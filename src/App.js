@@ -18,11 +18,35 @@ const options = {
     '006ed1ec7534a41423faea1f5a3ccd04399IABZqWtmG/8C0MsRljAYu57oVqrjsyK657NiC4UzlwzI+znmkEUAAAAAEABJgS3VXbqnXwEAAQBcuqdf'
 }
 
-const join = async () => {
+const join = async setRemoteUsers => {
   const client = AgoraRTC.createClient({
     mode: 'rtc',
     codec: 'h264'
   })
+
+  // remote publish
+  client.on('user-published', async (user, mediaType) => {
+    console.log('user-published: ', user)
+    console.log(user)
+    // Initiate the subscription
+    await client.subscribe(user, mediaType)
+    setRemoteUsers(currUsers => {
+      // only add non exist users
+      if (!currUsers.find(I => I.uid === user.uid)) {
+        return [...currUsers, user]
+      } else {
+        return currUsers
+      }
+    })
+  })
+
+  // remote user unpublished
+  client.on('user-unpublished', async (user, mediaType) => {
+    console.log('user-unpublished: ', user)
+    // Initiate the subscription
+    setRemoteUsers(currUsers => currUsers.filter(I => I.uid !== user.uid))
+  })
+
   const uid = await client.join(options.appId, options.channel, options.token)
   const audioTrack = await AgoraRTC.createMicrophoneAudioTrack()
   const videoTrack = await AgoraRTC.createCameraVideoTrack()
@@ -32,60 +56,16 @@ const join = async () => {
   return { client, user }
 }
 
-const useRoomUsers = client => {
-  const [remoteUsers, setRemoteUsers] = useState([])
-
-  useEffect(() => {
-    if (!client) {
-      return
-    }
-
-    client.on('user-added', async (user, mediaType) => {
-      console.log('user-subscribed: ', user)
-      // Initiate the subscription
-      await client.subscribe(user, mediaType)
-      setRemoteUsers(currUsers => {
-        // only add non exist users
-        if (!currUsers.find(I => I.uid === user.uid)) {
-          return [...currUsers, user]
-        } else {
-          return currUsers
-        }
-      })
-    })
-
-    // remote publish
-    client.on('user-published', async (user, mediaType) => {
-      console.log('user-published: ', user)
-      console.log(user)
-      // Initiate the subscription
-      await client.subscribe(user, mediaType)
-      setRemoteUsers(currUsers => {
-        // only add non exist users
-        if (!currUsers.find(I => I.uid === user.uid)) {
-          return [...currUsers, user]
-        } else {
-          return currUsers
-        }
-      })
-    })
-
-    // remote user unpublished
-    client.on('user-unpublished', async (user, mediaType) => {
-      console.log('user-unpublished: ', user)
-      // Initiate the subscription
-      setRemoteUsers(currUsers => currUsers.filter(I => I.uid !== user.uid))
-    })
-  }, [client])
-
-  return { localUser: client, remoteUsers }
-}
-
 const StreamRoom = ({ user }) => {
   useEffect(() => {
-    // track not exist in users of client in first joined
-    user.audioTrack.play()
-    user.videoTrack.play(user.uid.toString())
+    console.log(user)
+    try {
+      user.audioTrack?.play()
+      user.videoTrack?.play(user.uid.toString())
+    } catch (e) {
+      /* handle error */
+      console.log(e)
+    }
   }, [])
   const { uid } = user
   return (
@@ -97,27 +77,38 @@ const StreamRoom = ({ user }) => {
 }
 
 const App = () => {
+  const [remoteUsers, setRemoteUsers] = useState([])
   const [clientStatus, setClientStatus] = useState({})
   const { client, user: localUser } = clientStatus
-  const { remoteUsers } = useRoomUsers(client)
 
   const leave = async (client, user) => {
     user.audioTrack.close()
     user.videoTrack.close()
-    setClientStatus(originStatus => ({ ...originStatus, user: null }))
+    setClientStatus(I => ({ ...I, user: null }))
+    setRemoteUsers([])
     await client.leave()
+  }
+
+  const publish = async (client, user) => {
+    return client.publish([user.audioTrack, user.videoTrack])
+  }
+
+  const unpublish = async (client, user) => {
+    return client.unpublish([user.audioTrack, user.videoTrack])
   }
 
   return (
     <div className="App">
       <button
         onClick={async () => {
-          const status = await join()
+          const status = await join(setRemoteUsers)
           setClientStatus(status)
         }}>
         Join
       </button>
       <button onClick={() => leave(client, localUser)}>Leave</button>
+      <button onClick={() => unpublish(client, localUser)}>Unpublish</button>
+      <button onClick={() => publish(client, localUser)}>Publish</button>
       {localUser && <StreamRoom user={localUser} />}
       {remoteUsers?.map(user => (
         <StreamRoom key={user.uid} user={user} />
