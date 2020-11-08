@@ -48,7 +48,7 @@ const StreamRoom = ({ id, user }) => {
   )
 }
 
-const ClientSettings = ({ setSettings }) => {
+const ClientSettings = ({ settings, setSettings }) => {
   const handleChange = name => event =>
     setSettings(settings => ({ ...settings, [name]: event.target.value }))
 
@@ -60,6 +60,7 @@ const ClientSettings = ({ setSettings }) => {
           id="appId"
           type="text"
           name="appId"
+          value={settings.appId}
           onChange={handleChange('appId')}
         />
       </div>
@@ -69,6 +70,7 @@ const ClientSettings = ({ setSettings }) => {
           id="channel"
           type="text"
           name="channel"
+          value={settings.channel}
           onChange={handleChange('channel')}
         />
       </div>
@@ -78,6 +80,7 @@ const ClientSettings = ({ setSettings }) => {
           id="token"
           type="text"
           name="token"
+          value={settings.token}
           onChange={handleChange('token')}
         />
       </div>
@@ -240,7 +243,7 @@ const App = () => {
     <Wrapper>
       <ToastContainer position="bottom-left" />
       <h1>Run The World</h1>
-      <ClientSettings setSettings={setSettings} />
+      <ClientSettings settings={settings} setSettings={setSettings} />
       <Buttons>
         {!client ? (
           <button onClick={join}>Join</button>
