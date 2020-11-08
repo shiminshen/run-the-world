@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import AgoraRTC from 'agora-rtc-sdk-ng'
 import styled from 'styled-components'
@@ -93,7 +93,7 @@ const useAgroaClient = ({
   setClient,
   setRemoteUsers
 }) => {
-  const join = async () => {
+  const join = useCallback(async () => {
     const client = AgoraRTC.createClient({
       mode: 'rtc',
       codec: 'h264'
@@ -151,37 +151,61 @@ const useAgroaClient = ({
       return client
     } catch (e) {
       /* handle error */
-      toast.error(e.message)
+      toast.error(e?.message)
       return {}
     }
-  }
+  }, [setClient, setLocalUser, setRemoteUsers, settings])
 
-  const leave = async () => {
-    localUser.audioTrack.close()
-    localUser.videoTrack.close()
-    setClient(null)
-    setLocalUser(null)
-    setRemoteUsers([])
-    await client.leave()
-  }
+  const leave = useCallback(async () => {
+    try {
+      localUser.audioTrack.close()
+      localUser.videoTrack.close()
+      setClient(null)
+      setLocalUser(null)
+      setRemoteUsers([])
+      await client.leave()
+    } catch (e) {
+      /* handle error */
+      toast.error(e?.message)
+    }
+  }, [localUser, setClient, setLocalUser, setRemoteUsers, client])
 
-  const show = async () => {
-    await localUser.videoTrack.setEnabled(true)
-    return client.publish([localUser.videoTrack])
-  }
+  const show = useCallback(async () => {
+    try {
+      await localUser.videoTrack.setEnabled(true)
+      return client.publish([localUser.videoTrack])
+    } catch (e) {
+      /* handle error */
+      toast.error(e?.message)
+    }
+  }, [localUser, client])
 
-  const hide = async () => {
-    await localUser.videoTrack.setEnabled(false)
-    return client.unpublish([localUser.videoTrack])
-  }
+  const hide = useCallback(async () => {
+    try {
+      await localUser.videoTrack.setEnabled(false)
+      return client.unpublish([localUser.videoTrack])
+    } catch (e) {
+      toast.error(e?.message)
+    }
+  }, [localUser, client])
 
-  const mute = async () => {
-    return client.unpublish([localUser.audioTrack])
-  }
+  const mute = useCallback(async () => {
+    try {
+      return client.unpublish([localUser.audioTrack])
+    } catch (e) {
+      /* handle error */
+      toast.error(e?.message)
+    }
+  }, [localUser, client])
 
-  const unmute = async () => {
-    return client.publish([localUser.audioTrack])
-  }
+  const unmute = useCallback(async () => {
+    try {
+      return client.publish([localUser.audioTrack])
+    } catch (e) {
+      /* handle error */
+      toast.error(e?.message)
+    }
+  }, [localUser, client])
 
   return {
     join,
