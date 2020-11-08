@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/run-the-world/static/css/main.4a4137e4.chunk.css",
-    "main.js": "/run-the-world/static/js/main.4a1e2bea.chunk.js",
-    "main.js.map": "/run-the-world/static/js/main.4a1e2bea.chunk.js.map",
+    "main.js": "/run-the-world/static/js/main.418eed17.chunk.js",
+    "main.js.map": "/run-the-world/static/js/main.418eed17.chunk.js.map",
     "runtime-main.js": "/run-the-world/static/js/runtime-main.5112f74f.js",
     "runtime-main.js.map": "/run-the-world/static/js/runtime-main.5112f74f.js.map",
     "static/css/2.83342f34.chunk.css": "/run-the-world/static/css/2.83342f34.chunk.css",
@@ -20,6 +20,6 @@
     "static/css/2.83342f34.chunk.css",
     "static/js/2.ca690aea.chunk.js",
     "static/css/main.4a4137e4.chunk.css",
-    "static/js/main.4a1e2bea.chunk.js"
+    "static/js/main.418eed17.chunk.js"
   ]
 }
